@@ -1,11 +1,22 @@
-import React, {useState, useMemo, createContext} from 'react';
+import React, {useState, useMemo, createContext, useEffect} from 'react';
 import {getCategories, getProducts} from '../api';
+import {ICategory, IProduct} from '../types';
 
 const DataContext = createContext<any>(null);
 
 export const DataProvider = ({children}: {children: any}) => {
-  const [categories, setCategories] = useState();
-  const [products, setProducts] = useState();
+  const [categories, setCategories] = useState<ICategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<ICategory>();
+  const [products, setProducts] = useState<IProduct[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<IProduct[]>([]);
+
+  useEffect(() => {
+    setFilteredProducts(
+      products.filter((p: IProduct) =>
+        selectedCategory ? p.category === selectedCategory.name : true,
+      ),
+    );
+  }, [selectedCategory, products]);
 
   const LoadProducts = async () => {
     try {
@@ -24,7 +35,6 @@ export const DataProvider = ({children}: {children: any}) => {
   const LoadCategories = async () => {
     try {
       const res = await getCategories();
-
       if (res.data && res.data.categories) {
         setCategories(res.data.categories);
       } else {
@@ -35,14 +45,21 @@ export const DataProvider = ({children}: {children: any}) => {
     }
   };
 
+  const SelectCategory = async (category: any) => {
+    setSelectedCategory(category);
+  };
+
   const values = useMemo(
     () => ({
       products,
       LoadProducts,
       categories,
       LoadCategories,
+      selectedCategory,
+      SelectCategory,
+      filteredProducts,
     }),
-    [categories, products],
+    [products, categories, selectedCategory, filteredProducts],
   );
 
   return <DataContext.Provider value={values}>{children}</DataContext.Provider>;
